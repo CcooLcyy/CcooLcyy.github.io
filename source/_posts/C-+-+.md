@@ -1,25 +1,10 @@
 ---
-title: C plus plus
+title: C++
 date: 2022-09-04 23:07:06
 tags:
 ---
 
-[toc]
-
 # 基本类型
-
-|类型|关键字|
-|---|---|
-|布尔类型|bool|
-|字符型|char|
-|整数型|int/long long|
-|浮点型|float/double/long double|
-|无类型|void|
-|宽字符型|wchar_t|
-|指针类型|int*|
-|数组类型|char[]|
-|引用类型|double&|
-|自定义类型|数据结构/类/枚举|
 
 对于宽字符型来说按照如下方式定义
 
