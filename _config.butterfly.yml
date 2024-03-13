@@ -109,7 +109,7 @@ post_meta:
     label: true # true or false 顯示描述性文字
   post:
     date_type: both # created or updated or both 文章頁日期是創建日或者更新日或都顯示
-    date_format: date # date/relative 顯示日期還是相對日期
+    date_format: relative # date/relative 顯示日期還是相對日期
     categories: true # true or false 文章頁是否顯示分類
     tags: true # true or false 文章頁是否顯示標籤
     label: true # true or false 顯示描述性文字
@@ -149,7 +149,7 @@ toc:
   post: true
   page: true
   number: true
-  expand: false
+  expand: true
   style_simple: true # for post
   scroll_percent: true
 
@@ -254,7 +254,7 @@ aside:
     order: 1 # Sort of order. 1, asc for ascending; -1, desc for descending
     sort_order: # Don't modify the setting unless you know how it works
   card_archives:
-    enable: true
+    enable: false
     type: monthly # yearly or monthly
     format: MMMM YYYY # eg: YYYY年MM月
     order: -1 # Sort of order. 1, asc for ascending; -1, desc for descending
@@ -282,7 +282,7 @@ busuanzi:
 # Formal: Month/Day/Year Time or Year/Month/Day Time
 runtimeshow:
   enable: true
-  publish_date:
+  publish_date: 2021/06/20 10:24
 
 # Aside widget - Newest Comments
 newest_comments:
