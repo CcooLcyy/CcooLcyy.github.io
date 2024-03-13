@@ -1,38 +1,190 @@
 ---
 title: Hello World
+date: 2021-06-20 13:37:59
+tags:
 ---
-Welcome to [Hexo](https://hexo.io/)! This is your very first post. Check [documentation](https://hexo.io/docs/) for more info. If you get any problems when using Hexo, you can find the answer in [troubleshooting](https://hexo.io/docs/troubleshooting.html) or you can ask me on [GitHub](https://github.com/hexojs/hexo/issues).
 
-## Quick Start
-
-### Create a new post
-
-``` bash
-$ hexo new "My New Post"
+```c
+print("Hello, world\n");
 ```
 
-More info: [Writing](https://hexo.io/docs/writing.html)
+这是K&R那本书里面首次提出来的，当自己编写的程序可以运行的时候，我更希望他们不仅仅是单纯的程序，他们更像是一群忠诚的朋友们，时刻陪伴着我，激励着我。
+以后的日子里也要加油啊！
 
-### Run server
+PS：文章在精不在多，凡是能在原先文章的基础上进行修改的优先在原先的文章上进行修改，但还是要根据实际情况判断是否需要新开文章
 
-``` bash
-$ hexo server
+# 启程
+
+今天是2021年6月19日，这是我的第一篇文章。没有学过前端只是，看了很多稚晖君的视频，又转了转他的个人站。我意识到有一个个人网站真的是一件很酷的事，其实云服务器（公网真香）去年12月份就买了，但是一直是在闲置，正好东西都齐全了，我也要开始折腾折腾了。个人博客是自己的一亩三分地，我想在我这一亩三分地里记录下点东西。
+
+使用`win + shift + s`进行windows中的屏幕部分截图
+
+# 搭建思路
+
+2022/8/27更新。
+
+为了适应能在不同不同的场合都能随时更新，也为了能及时的更改blog中错误的部分。我采用了GitHub管理笔记的内容，在云端服务器上直接生成静态网页，通过nginx代理。
+
+更新流程如下：
+
+1. 在GitHub修改
+2. 在云端pull下来
+3. 使用`hexo g`生成静态网页
+4. 必要的话重启nginx
+
+可以使用linux的定时任务`crontab`进行自动操作，将以上操作写成脚本。这样只要在GitHub修改blog内容，云端会自动同步并生成静态网页。
+
+但是`crontab`脚本比较难写，将以上命令编写成shell脚本并不能顺利运行。
+
+---
+
+~~搭建思路~~
+
+~~我的思路是首先在PC上进行尝试，成功之后，可以转移到树莓派或者是云服务器上。后来发现，有更简单的管理网站的办法，直接在本地`hexo init`通过git将网站部署到服务器上，采用hexo进行部署真的非常方便。接下来的网站搭建就是根据这个思路来的。~~
+
+# 博客搭建过程
+
+## 安装node.js
+
+在云端机安装nodejs，如果仓库没有软件需要从可以从[官网](https://nodejs.org/en/)下载源码编译。
+
+~~本地机随意，在一开始使用的是Ubuntu，后来将工作环境迁移到了Windows上，需要进行的改动也很少，安装`git node`。
+服务器都是采用的Ubuntu系统，默认apt安装的并最新版node.js。[node.js中文站](http://nodejs.cn/)上有比较详细的安装方法。~~
+
+~~可以直接下载二进制包，但是我感觉路径配置可能会很麻烦，本次任务主要是将网站成功跑起来，就先不捣鼓这些东西。我从中文站的帮助页找到了安装方法。（其他适用于 Linux 和 Windows 的软件包管理器列出在 [github上的帮助页](https://nodejs.org/en/download/package-manager/)。）~~
+
+```shell
+# Using Ubuntu 
+curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+sudo apt-get install -y nodejs
 ```
 
-More info: [Server](https://hexo.io/docs/server.html)
+## 安装淘宝镜像源
 
-### Generate static files
+首先确定已经成功安装node.js和npm之后就可以安装cnpm，他们给出的说法是因为npm的源在国外，因此速度很慢，采用cnpm也就是淘宝镜像源进行安装。
 
-``` bash
-$ hexo generate
+但是我尝试过npm安装，速度还可以。不过毕竟是国外源，万一抽风了还是很难受的，最好还是安装一个cnpm以防万一，反正就是哪个能用用哪个。
+
+```shell
+npm install -g cnpm --registry=https://registry.npmmirror.com
 ```
 
-More info: [Generating](https://hexo.io/docs/generating.html)
+## 安装hexo
 
-### Deploy to remote sites
+可能官方的文档好久没更新了吧，就凑合看看就行了。
 
-``` bash
-$ hexo deploy
+使用全局安装hexo
+
+```shell
+cnpm install -g hexo
 ```
 
-More info: [Deployment](https://hexo.io/docs/one-command-deployment.html)
+~~官网上给出的方法是使用~~
+
+~~但是经过尝试安装hexo-cil无法成功（网上的文章可能因为年代久远并不是很确切），这里还是要说一点的，遇到问题搜索答案的时候，一定要带上版本号。而且，尽可能多读一读官方文档，虽然有些文档是英文的，但是遇到困难还是要解决困难的。我直接使用hexo进行了安装，最后也成功了。~~
+
+## 创建个人站
+
+文章的配图自此开始全部存于云端中，不再使用图床。使用md语法链接配图即可。
+
+~~文章的配图我放在了图床上，其实可以直接放在服务器上，还是直接放在个人服务器上比较合适，但是之前在cnblog更新的时候只会放在图床上，这个东西后期可以再弄一弄，图片也不是很多，流量也足够了。~~
+
+新建并进入文件夹，这里只给几个常用的命令，详细的信息可以从[hexo官方文档](https://hexo.io/zh-cn/docs/)找到
+
+```shell
+# 生成静态网站
+hexo g
+# 生成的静态网页在blog根目录的public下。
+
+# 网站初始化一般就是在第一次使用的时候
+hexo init  ## 初始化网站，也就是创建所需文件
+
+# 使用命令新建文章可以把一些title自动加上
+hexo new  ## 新建一篇文章
+
+# 最多使用的就是这个命令，可以直接部署到服务器上
+hexo g -d   ## 生成静态文件并部署
+
+# 这个命令基本上就是在本地测试的时候
+hexo s   ## 启动服务
+```
+
+# （可选使用）Git
+
+有一种部署方法是直接放到GitHub上，但是我一直误认为git就是GitHub。因此，对于官方文档上的git几乎都视而不见。经过不断翻阅别人的博客我才了解到，需要在服务器建立一个空的git仓库，用来将本地的博客推送到服务器上。
+
+简单对本次博客搭建所用到的git操作进行一下总结，这也是我不系统的学习过git之后才了解到的。
+
+## 安装git
+
+本地和服务器都要安装git，对于Linux直接使用包管理器就好（apt yum），因为我们的博客并不是直接在服务器上进行修改，而是在本地修改通过hexo和git部署到服务器上。
+
+## 复制公钥
+
+这一步我们要在用户目录下生成一个ssh的公钥，如果我们没有将本地的ssh公钥提交到服务器，那每一次都要输入密码，非常麻烦。
+
+我们可以用`ssh key-gen`之后将公钥复制到服务器的`.ssh/authorized_keys`中，注意每个占一行。
+
+## 关联远程仓库
+
+在hexo部署的时候会先配置一下本地的deploy的配置
+
+```shell
+# Deployment
+## Docs: https://hexo.io/docs/one-command-deployment
+deploy:
+  type: git
+  repo: git@<域名或IP地址>:/home/git/blog.git
+  branch: master
+```
+
+## 服务器仓库处理
+
+在服务器新建一个repo用来推送
+
+```shell
+## 可以新建一个没有工作区的仓库
+## 路径要和本地的deploy配置中的路径一致，不然找不到仓库
+git init --bare <reponame>.git
+```
+
+并且将本地的库与远程库关联。一定要要注意权限问题！！
+
+## 使用hooks来同步博客
+
+这一步我们是为了将我们服务器的仓库生成静态文件并且关联到我们的博客文件夹中。
+
+这里要用到一个脚本文件，在`.git/hooks`目录下有很多脚本，根据[git官方网站](https://git-scm.com/book/zh/v2/%E8%87%AA%E5%AE%9A%E4%B9%89-Git-Git-%E9%92%A9%E5%AD%90)的说法
+
+>钩子都被存储在 Git 目录下的 `hooks` 子目录中。 也即绝大部分项目中的 `.git/hooks` 。 当你用 `git init` 初始化一个新版本库时，Git 默认会在这个目录中放置一些示例脚本。 这些脚本除了本身可以被调用外，它们还透露了被触发时所传入的参数。 所有的示例都是 shell 脚本，其中一些还混杂了 Perl 代码，不过，任何正确命名的可执行脚本都可以正常使用 —— 你可以用 Ruby 或 Python，或任何你熟悉的语言编写它们。 这些示例的名字都是以 `.sample` 结尾，如果你想启用它们，得先移除这个后缀。
+
+需要让hooks生效需要去掉后缀`.sample`，这里我们创建一个shell脚本，命名为`post-receive`并且赋予执行权限700，当然如果使用root账户创建的脚本还不能忘了把owner和group改了，`chown -R git:git <filename>`
+
+```shell
+#!/bin/bash
+git --work-tree=/home/blog --git-dir=/home/git/blog.git checkout -f
+## 对目录进行合理替换。
+```
+
+## 创建博客静态文件目录
+
+我们按照上面的在脚本中的目录路径创建一个博客的文件夹，用来存放生成的静态目录。
+
+# Nginx
+
+## 配置方法
+
+安装nginx，并配置`nginx.conf`文件。
+
+```shell
+server {
+  index   index.html
+  root    /path/to/blog/public
+}
+```
+
+指定需要展示的页面也就是`index.html`并且指定路径，重启nginx就可以显示网页。
+
+---
+
+进行一个项目，首先要保证项目能运行，即使他现在很脆弱，但是我们在成长，他也会成长，慢慢的完善。无论如何要满足项目最基本的属性，就这个例子来说，无论这个博客美不美观，首先还是要让他能运行起来。
