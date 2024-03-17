@@ -46,17 +46,7 @@ int main() {
 
 根据继承的方式不同，子类获得的父类成员以及权限也不同，如下表：
 
-|父类权限|继承方式|子类获得权限|
-|---|---|---|
-|pubic|public|public|
-|protected||protected|
-|private||no access|
-|public|protected|protected|
-|protected||protected|
-|private||no access|
-|public|private|private|
-|protected||private|
-|private||no access|
+![](../image/C++/类成员权限继承关系.svg)
 
 简单概述: 在最开放的继承权限下，除private成员外其他成员按照原始权限继承。当继承权限范围缩小时，父类超出继承权限的成员到子类中会缩减到继承权限相同的范围。父类private成员永远无法继承。
 
@@ -233,3 +223,10 @@ int main() {
 
 在C++中内存布局如下: 
 
+![内存布局](../image/C++/内存布局.svg)
+
+1. 栈区: 保存函数的局部变量，函数参数，返回值。由高地址到低地址增长的。
+2. 堆区: 动态内存都是在堆上进行，由低地址到高地址。
+3. 全局静态区: 存放未初始化的全局变量，在程序载入时由内核置其值为0。
+4. 常量区: 静态变量和所有已经初始化的全局变量。
+5. 代码区: 在内存中被映射为只读，存放程序代码。
