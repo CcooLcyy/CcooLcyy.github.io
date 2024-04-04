@@ -1,5 +1,5 @@
 ---
-title: GIT
+title: Git
 date: 2021-06-27 23:58:32
 tags: tools
 ---
@@ -90,15 +90,7 @@ CcooLcyy
 
 ## 暂存区和版本库
 
-在工作区之下有一个`.git`文件夹，这个是git的版本库。
-
-暂存区也在`.git`里面被成为stage，同时也有git自动创建的master分支。
-
-object是git的对象库，位于`.git/object`下，包含了创建的对象以及文件。
-
-我们在工作区进行修改，通过`git add`将文件添加到暂存区，之后使用`git commit`将暂存区的文件保存到master分支中
-
----
+在工作区之下有一个`.git`文件夹，这个是git的版本库。暂存区也在`.git`里面被成为stage，同时也有git自动创建的master分支。object是git的对象库，位于`.git/object`下，包含了创建的对象以及文件。我们在工作区进行修改，通过`git add`将文件添加到暂存区，之后使用`git commit`将暂存区的文件保存到master分支中
 
 ```shell
 ## 将暂存区的目录树写入到版本库中，
