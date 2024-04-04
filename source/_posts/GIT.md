@@ -302,15 +302,23 @@ bug：用来修复本地的bug，可以不推送分支。
 
 feature：放飞自我的地方。
 
-#### 修复bug（暂存区存储）
+#### git stash（修复bug、暂存区存储）
 
-情景：工作时有一个急需修复的bug，但是暂存区中的文件还没有提交，但是现在有无法提交，工作没有完成。这个时候可以先吧暂存区存储起来，修复完bug之后再恢复现场继续工作。
+情景：目前有一个急需修复的bug需要从远端拉取到本地，但是暂存区中的文件还没有暂存更改，此时可以使用stash将工作环境保存起来。
 
 ```shell
-## 当暂存区还有文件没提交的时候git stash## 查看stash的工作现场git stash list
+git stash
+git stash list
 ```
 
-解决bug之后我们可以将stash中的工作现场pop出来，也可以apply出来，但是需要drop删除
+首先将工作现场保存下来，接下来可以查看已经保存下来的现场。
+
+```shell
+git stash pop
+git stash apply & git stash drop
+```
+
+解决bug之后需要恢复之前的现场，可以像栈一样pop工作现场，此时会删除保存的内容，或者使用apply和drop手动恢复和删除。
 
 ```shell
 ## 从stash恢复git stash apply stash@{0}## 从stash删除git stash drop stash@{0}## 上述两条命令可以直接写为git stash pop
