@@ -364,3 +364,86 @@ strstrm.str(s);             // 将string s拷贝到strm中返回void
 ```
 
 一个stringstream对象每次使用`>>`输出运算符，都会从流中读出一个单词，以空格为界。
+
+# 使用抽象接口类导出DLL
+
+DLL地狱原因：DLL设计之初就是为了函数级共享库设计的，没有考虑到C++类的信息，导出类其实本质上就是对类函数的导出，因此导出类不要导出除了函数之外的任何内容。
+
+抽象接口类：仅包含纯虚函数，不包含数据成员。
+
+虽然C++没有为接口提供特殊的概念，但是仍然可以实现接口，实现的方法是创建一个没有任何数据成员的抽象类，使用另外一个单独的类从接口继承并且实现接口方法，依次来实现对客户端的隐藏，客户端及不知道也没有必要知道接口的实现方式，只需要知道可以用来实现什么操作即可。
+
+## 实现方式
+
+仅又纯虚方法组成的武成元的C++类只有一个虚表，也就是一个函数指针数组，函数指针数组由DLL作者填充需要导出的函数在DLL中然后在DLL外部使用此指针数组来调用实际的实现。
+
+## 优缺点
+
+1. 导出的C++类通过抽象接口可以与任何编译器一起使用。
+2. DLL的C运行时库和客户端彼此独立，资源获取和释放完全发生在DLL内部，用户不受内部改变的影响，实现了真正的模块分离，可以重新设计和生成DLL模块，同时也可以方便的转换为COM模块。
+
+---
+
+1. 创建新对象实例并且将其删除需要显示函数调用，使用智能指针可以解决这一问题。
+2. 抽象接口方法无法返回或接受常规C++对象作为参数，是A内置类型（int double char*等）或者另一抽象接口，与C接口限制相同。
+
+### 待解决问题：
+1. 考虑如何使用智能指针创建对象
+2. 缺点的第二条是什么意思？
+
+抽象接口的能够同时兼顾两个方面：
+
+1. 对象无关的纯净接口。
+2. 方便的面向对象调用
+
+所做的操作是为头文件提供接口声明并且实现工厂函数，该函数将返回新创建的对象实例。需要注意的是工厂函数需要与`__declspec(dllexport/dllimport)`一起声明。
+
+
+`include.h`
+```cpp
+struct Idll {
+    virtual int Sum(int n) = 0;
+    virtual void Release() = 0;
+};
+
+// 工厂函数
+extern "C" DLLAPI Idll* __stdcall GetObj();
+```
+
+`main.cc`
+```cpp
+#include "include.h"
+
+class Cdll : public Idll {
+    int Sum(int n);
+    void Release();
+};
+
+int Cdll::Sum(int n) {
+    return n + n;
+}
+
+int Cdll::Release() {
+    delete this;
+}
+
+DLLAPI Idll *__stdcall GetObj() {
+    return new Cdll;
+}
+```
+
+`使用DLL`
+```cpp
+#include "include.h:"
+#pragma comment(lib, "dll.lib")
+
+int _tmain(int argc, _TCHAR *argv[]) {
+    Idll *pObj = GetObj();
+    std::cout << pObj->Sum(123) << std::endl;
+    pObj->Release();
+    return 0;
+}
+```
+
+将工厂函数声明为`extern "C"`的作用是防止对函数名称的修改，此函数作为常规C函数公开，可以被任何C兼容编译器识别。
+
