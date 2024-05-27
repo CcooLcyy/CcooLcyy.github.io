@@ -45,3 +45,20 @@ dpkg-deb -b -Zxz ./packet ./packet/${appname}.deb
 # 注意事项
 
 由于构建二进制可执行程序的编译器非常的新，动态库也会很新，而在对应终端运行程序中的动态库几乎一定无法运行，因此需要将几乎所有的动态库都打包进deb包中，这一点要在cmake构建编译的时候解决。
+
+# 查询程序依赖的动态库
+
+`objdump -p test | grep NEEDED`显示内容如下
+
+```sh
+root@sdk:/data/test# objdump -p test | grep NEEDED
+  NEEDED               libboost_json.so.1.85.0
+  NEEDED               libboost_system.so.1.85.0
+  NEEDED               libCJsonObject.so
+  NEEDED               libboost_container.so.1.85.0
+  NEEDED               libpthread.so.0
+  NEEDED               libstdc++.so.6
+  NEEDED               libm.so.6
+  NEEDED               libgcc_s.so.1
+  NEEDED               libc.so.6
+```
