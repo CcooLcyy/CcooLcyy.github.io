@@ -36,6 +36,120 @@ target_link_libraries(${PROJECT_NAME} PRIVATE Boost::json Boost::system Threads:
 
 # asio
 
+## 基础教程
+
+### 同步使用定时器
+
+对于所有使用asio的程序我们都至少需要提供一个IO执行上下文，可以是`io_context`或者是`thread_pool`对象，一个IO执行上下文提供了IO访问能力，通过以下方式声明一个IO执行上下文。
+
+```c++
+boost::asio::io_context io;
+```
+
+接下来我们需要声明一个定时器类型的对象。提供IO功能核心asio类（在这个例子中是一个定时器功能）总是需要获取一个执行器，或者执行上下文的引用（比如io_context）用来作为第一个构造函数的参数，第二个构造函数的参数可以设置为一个从现在开始5秒到期的时间。
+
+```c++
+boost::asio::steady_timer t(io, std::chrono::seconds(5));
+```
+
+在这个例子中我们使用`wait`在计时器中阻塞。也就是说对`steady_timer::wait()`的调用不会返回，直到定时器过期，也就是定时器创建之后的5秒，而不是从等待开始时5秒。
+
+定时器只有两种状态，到期（expired）未到期（not expired），如果`steady_timer::wait()`功能通过一个到期的定时器调用，他会立即返回。
+
+### 异步使用定时器
+
+使用asio的异步功能需要提供一个完成标志，这个标志决定了结果当异步操作完成后如何传递给完成事件处理函数。在这个例子中我们提供一个`print`函数当我们的异步等待结束之后这个函数会被调用。
+
+```c++
+void print(const boost::system::error_code&) {
+    //
+}
+```
+
+接下来我们调用`steady_timer::async_wait()`函数展示异步等待，当我们调用这个函数时，我们传递`print`函数的指针到这个函数中。
+
+```c++
+t.async_wait(&print);
+```
+
+最后我们在`io_context`对象上调用`boost::asio::io_context::run()`成员函数。asio保证事件处理函数只会被正在调用`boost::asio::io_context::run()`的线程调用。因此除非`boost::asio::io_context::run()`函数被调用，否则永远不会调用异步等待完成的事件处理函数。
+
+`boost::asio::io_context::run()`函数当有"work"要做的时候将会继续运行，在这个例子中，这个work是定时器的异步等待，所以这个调用不会被返回，直到定时器超时并且完成事件处理函数之前。
+
+所以最重要的是记得给`io_context`一些工作在调用`boost::asio::io_context::run()`之前。例如，如果我们忽略了之前的定时器异步等待操作而直接`run`IO执行上下文的话，IO执行上下文会没事可干并且直接返回。
+
+### 为异步等待绑定参数
+
+在异步等待的时候函数`async_wait()`传入一个函数指针，如果需要传入一个参数，需要使用`std::bind`主要是`std::bind`函数的使用。
+
+### 将成员函数作为事件处理函数
+
+与前面的教程很相似，没有什么新的概念。由于任何非静态成员变量都会隐含一个`this`指针，因此当我们需要传入类的非静态成员变量的时候需要使用`std::bind`将`this`指针绑定。其他与之前的没有区别。
+
+### 并发异步处理
+
+```c++
+#include <boost/asio.hpp>
+#include <functional>
+#include <iostream>
+#include <thread>
+
+class printer {
+public:
+    printer(boost::asio::io_context& io) :
+            strand_(boost::asio::make_strand(io)),
+            timer1_(io, boost::asio::chrono::seconds(1)),
+            timer2_(io, boost::asio::chrono::seconds(1)),
+            count_(0) {
+        timer1_.async_wait(boost::asio::bind_executor(strand_, std::bind(&printer::print1, this)));
+        timer2_.async_wait(boost::asio::bind_executor(strand_, std::bind(&printer::print2, this)));
+    }
+    ~printer() {
+        std::cout << "Final count is " << count_ << std::endl;
+    }
+    void print1() {
+        if (count_ < 10) {
+            std::cout << "Timer 1: " << count_ << std::endl;
+            ++count_;
+            timer1_.expires_at(timer1_.expiry() + boost::asio::chrono::seconds(1));
+            timer1_.async_wait(boost::asio::bind_executor(strand_, std::bind(&printer::print1, this)));
+        }
+    }
+    void print2() {
+        if (count_ < 10) {
+            std::cout << "Timer 2: " << count_ << std::endl;
+            ++count_;
+            timer2_.expires_at(timer2_.expiry() + boost::asio::chrono::seconds(1));
+            timer2_.async_wait(boost::asio::bind_executor(strand_, std::bind(&printer::print2, this)));
+        }
+    }
+private:
+    boost::asio::strand<boost::asio::io_context::executor_type> strand_;
+    boost::asio::steady_timer timer1_;
+    boost::asio::steady_timer timer2_;
+    int count_;
+};
+int main() {
+    boost::asio::io_context io;
+    printer p(io);
+    std::thread t([&]() { io.run(); });
+    io.run();
+    t.join();
+}
+```
+
+首先`pointer`类构造函数接收一个`io_context`并且在内部使用这个IO执行上下文创建两个计时器，在这个类中还需要使用`io_context`构建一个`strand`接下来的内容和以成员函数作为功能处理函数相同，接下来主要介绍`strand`。
+
+`strand`是一个串行执行器，在`boost.asio`中是一个非常重要的概念，用来保证多线程环境中的线程安全，如果有多个线程同时从`io_context`中取任务进行操作，尤其是在操作临界资源的时候会引发线程安全，串行执行器能够保证绑定到通过一个串行执行器上的任务在多线程操作时线程的安全。
+
+**strand**用法：
+
+1. 首先通过`boost::make_strand(io_context)`来创建一个`strand`。
+2. 通过`boost::asio::bind_executor(strand, handler)`来绑定执行器和处理函数。
+3. 使用`run`函数执行IO执行上下文中的任务时会保证同一个`strand`中的任务不会触发。
+
+总结来看，使用`strand`需要使用`boost::asio::strand<boost::asio::io_context::executor_type>`创建，这个变量就可以使用`boost::asio::make_strand`函数将`io_context`传入到`strand`中，这样`strand`就和`io_context`进行了绑定。接着需要将添加到IO执行上下文中的任务使用`boost::asio::bind_executor()`绑定到`strand`上，并且需要将特定的`strand`和待执行的（回调函数）传入（如果需要`std::bind`的话要加上）。
+
 ## 异步编程
 
 给出最简单的异步server实现方式。
