@@ -154,7 +154,7 @@ int main() {
 
 给出最简单的异步server实现方式。
 
-```c++
+<!-- ```c++
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/address.hpp>
 #include <boost/asio/ip/address_v4.hpp>
@@ -238,6 +238,100 @@ int main(int argc, char *argv[]) {
     Server server(io, port);
     io.run();
 }
+``` -->
+
+### 异步server
+
+```c++
+#include <spdlog/spdlog.h>
+#include <boost/asio.hpp>
+#include <ctime>
+#include <functional>
+#include <iostream>
+#include <memory>
+#include <string>
+
+using boost::asio::ip::tcp;
+
+std::string make_daytime_string() {
+    using namespace std;  // For time_t, time and ctime;
+    time_t now = time(0);
+    return ctime(&now);
+}
+
+class tcp_connection : public std::enable_shared_from_this<tcp_connection> {
+public:
+    typedef std::shared_ptr<tcp_connection> pointer;
+    static pointer create(boost::asio::io_context& io_context) {
+        return pointer(new tcp_connection(io_context));
+    }
+
+    tcp::socket& socket() {
+        return socket_;
+    }
+
+    void start() {
+        message_ = make_daytime_string();
+
+        boost::asio::async_write(
+            socket_,
+            boost::asio::buffer(message_),
+            std::bind(
+                &tcp_connection::handle_write,
+                shared_from_this(),
+                boost::asio::placeholders::error,
+                boost::asio::placeholders::bytes_transferred));
+    }
+
+private:
+    tcp_connection(boost::asio::io_context& io_context) : socket_(io_context) {}
+
+    void handle_write(const boost::system::error_code& /*error*/, size_t /*bytes_transferred*/) {}
+
+    tcp::socket socket_;
+    std::string message_;
+};
+
+class tcp_server {
+public:
+    tcp_server(boost::asio::io_context& io_context) :
+            io_context_(io_context), acceptor_(io_context, tcp::endpoint(tcp::v4(), 13)) {
+        start_accept();
+    }
+
+private:
+    void start_accept() {
+        tcp_connection::pointer new_connection = tcp_connection::create(io_context_);
+
+        acceptor_.async_accept(
+            new_connection->socket(),
+            std::bind(&tcp_server::handle_accept, this, new_connection, boost::asio::placeholders::error));
+    }
+
+    void handle_accept(tcp_connection::pointer new_connection, const boost::system::error_code& error) {
+        if (!error) {
+            spdlog::info("client connected");
+            new_connection->start();
+        }
+
+        start_accept();
+    }
+
+    boost::asio::io_context& io_context_;
+    tcp::acceptor acceptor_;
+};
+
+int main() {
+    try {
+        boost::asio::io_context io_context;
+        tcp_server server(io_context);
+        io_context.run();
+    } catch (std::exception& e) {
+        std::cerr << e.what() << std::endl;
+    }
+
+    return 0;
+}
 ```
 
 ### 异步操作的关键：io_context对象
@@ -246,9 +340,13 @@ int main(int argc, char *argv[]) {
 
 对于`asio`来说，实现异步的方式是使用`io_context`对象，这个对象是asio中最关键的部分，它提供了一种在多线程环境中安全的调度和执行任务的方式，当我们调用一个异步函数的时候，这个函数不管io操作是否完成都会直接返回，当函数返回之后这个函数的内存空间也就释放了，但是我们传入了一个可调用对象时，如果传入的函数返回了，那么传入的可调用对象也就消失了，但是`io_context`会将可调用对象添加到`io_context`的内部队列中，当异步操作完成时会从队列中取出对应的可调用对象并且执行。因此我们可以将`io_context`看作是一个管理和调度回调函数的工具。
 
-### 防止提前析构session
+### 防止提前析构connection
 
-在进行异步编程的时候因为异步函数直接返回了，而回调操作是由`io_context`进行管理的，当有消息到达的时候仔细观察上面的session类可以发现，在调用回调函数的时候需要保证session对象一直是存在的，如何做到这一点？
+异步编程相比于同步编程区别在于，在同步的时候如果开启了一个work，则开启work的对象会被阻塞，直到work完成，但是异步的时候work开启之后会立刻返回，开启work的对象也就不会被阻塞。假设我们开启一个服务器进行同步等待连接，在客户端连接到服务端之前服务端都会进行阻塞不会做其他事，如果使用异步编程的话，熟悉异步编程的都知道，需要提供一个回调函数，用来在任务可以执行的时候给出具体的动作。这里代表着如果启动服务端异步等待，在连接到来之前服务端如果有其他任务可以继续做，并不会进行阻塞会继续做其他的事情，当连接到来的时候会调用回调函数处理连接。
+
+异步操作不是多线程操作，本质还是单线程的，并不涉及线程安全的问题，所以即使进行了异步操作，但是当某个任务操作时间很长时，有新的任务到来依然会进行阻塞，主要原因就是在于其本质还是单线程的。异步操作的有点就是在像服务器等待连接这种不占用CPU运行时只进行IO阻塞的情况下能够让出CPU运行时给需要的任务。想要实际解决计算密集型任务的单线程阻塞问题还是得需要多线程工作。
+
+但是由于`io_context`的特性，在没有任务的时候会自动结束，所以我们需要一种方式让`io_contex`知道现在有任务正在进行，实现方式就是使用`std::enable_shared_from_this<class>`来进行，在使用`std::bind`进行绑定的时候需要使用`shared_from_this()`将共享指针传入到回调函数中，由于引用计数器不归零指向连接的只能指针就不会自动析构，也就意味着仍然有任务进行，`io_contex.run()`就不会被返回。
 
 ```c++
 class Session : public std::enable_shared_from_this<Session> {
@@ -293,6 +391,8 @@ private:
 我们可以发现在每个具体的do函数中第一行都有一个`auto self(shared_from_this())`，这行代码可以通过刚才提到的函数来创建一个指向自身对象的共享指针，并且将这个指针交给`self`变量。因为在外面也就是`Server`中我们是使用`std::make_shared<Session>()`创建了对象，此时共享指针的引用计数为1，当我们执行`Session`中第一个do方法`do_read`的时候又会创建一个共享指针，此时指针的引用计数变成了2，接着`self`变量被lambda表达式捕获，由于lambda表达式普通捕获是复制操作，因此这里的引用计数就变成了3，接着异步函数会直接返回，而我们执行的`do_read`函数也有由于执行完成而返回，`auto self(shared_from_this())`创建的`shared_ptr`就会被销毁，此时引用计数变为2。lambda表达式会交给`io_context`对象管理，而lambda中捕获了创建出来的共享指针，因此只要`io_context`对象不销毁对`Session`的引用计数就至少为1，由此就实现了保证`Session`对象在使用的时候一定会存在。
 
 需要注意，lambda捕获的`this`和`self`作用是不同的，`self`作用是用来延长`Session`对象的声明周期，而`this`的作用是让lambda中能够使用该`Session`的成员函数。
+
+**需要注意，可以直接使用`std::bind`将函数`shared_from_this()`绑定到回调函数中，即使这个回调函数没有相应的形参。**
 
 ### 能够异步的对象
 
