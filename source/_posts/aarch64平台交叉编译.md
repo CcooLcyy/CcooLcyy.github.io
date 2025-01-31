@@ -62,3 +62,13 @@ root@sdk:/data/test# objdump -p test | grep NEEDED
   NEEDED               libgcc_s.so.1
   NEEDED               libc.so.6
 ```
+
+# 查找依赖的动态库
+
+在各个交叉编译链中都附带了ldd工具，使用这个工具可以显示出在本机的动态库路径，这对处理依赖非常有用。
+
+```shell
+aarch64-none-linux-gnu-ldd <program>
+```
+
+需要注意如果在x86架构上使用x86的ldd是无法解析出arm64架构的程序，必须使用交叉编译链提供的ldd，而且这个命令并不是在标准路径下的，需要搜索找到。由于这个命令并不会像编译器有aarch的前缀，可以将其从原位置复制到添加到环境变量中的位置。
