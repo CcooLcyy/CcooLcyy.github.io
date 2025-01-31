@@ -1,0 +1,39 @@
+name: Deploy Hexo to GitHub Pages
+
+on:
+  push:
+    branches:
+      - master  # 触发分支
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20  # 推荐 Node.js 20
+
+      - name: Install Dependencies
+        run: |
+          npm install hexo-cli -g
+          npm install
+
+      - name: Build Hexo
+        run: hexo clean && hexo generate
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: ./public  # Hexo 生成目录
+
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
