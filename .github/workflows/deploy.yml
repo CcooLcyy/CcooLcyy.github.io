@@ -14,8 +14,9 @@ jobs:
       id-token: write
 
     steps:
-      - name: Checkout Code
+      - name: Checkout Repo
         uses: actions/checkout@v4
+        with: recursive
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
